@@ -1,0 +1,41 @@
+{
+  "name": "hang2048",
+  "version": "1.2.0",
+  "description": "夯048（Hang2048）：拉完了 → NPC → 人上人 → 顶级 → 夯 合成链桌面游戏",
+  "main": "main.js",
+  "author": "HYTools",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.hytools.hang2048",
+    "productName": "Hang2048",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "index.html",
+      "icon.png"
+    ],
+    "win": {
+      "icon": "icon.png",
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

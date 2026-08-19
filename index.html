@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>夯048 · Hang2048</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; user-select:none; -webkit-user-select:none; }
+  html, body {
+    width:100%; height:100%; overflow:hidden;
+    background:#faf8ef;
+    font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
+  }
+  #app {
+    width:550px; height:600px; margin:0 auto;
+    display:flex; flex-direction:column; align-items:center;
+    padding:14px 25px 0 25px;
+    position:relative;
+  }
+  .header { width:100%; display:flex; align-items:center; justify-content:space-between; }
+  .title h1 { font-size:26px; color:#776e65; }
+  .title .chain { font-size:12px; color:#a0948a; margin-top:2px; letter-spacing:1px; }
+  .score-box {
+    background:#bbada0; color:#f9f6f2; border-radius:6px;
+    padding:4px 14px; text-align:center; min-width:88px;
+  }
+  .score-label { font-size:11px; color:#eee4da; letter-spacing:1px; }
+  .score-value { font-size:24px; font-weight:bold; line-height:1.1; }
+  .stats { display:flex; align-items:stretch; gap:6px; }
+  .stat-box {
+    background:#bbada0; color:#f9f6f2; border-radius:6px;
+    padding:4px 10px; text-align:center; min-width:62px;
+  }
+  .stat-label { font-size:11px; color:#eee4da; letter-spacing:1px; }
+  .stat-value {
+    font-size:18px; font-weight:bold; line-height:1.2;
+    font-variant-numeric:tabular-nums;
+  }
+  .reset-btn {
+    background:#8f7a66; color:#f9f6f2; border:none; border-radius:6px;
+    padding:9px 16px; font-size:14px; font-weight:bold; cursor:pointer;
+  }
+  .reset-btn:hover { background:#9f8b77; }
+  .reset-btn:active { transform:scale(0.95); }
+
+  .board {
+    position:relative; width:500px; height:500px;
+    background:#bbada0; border-radius:12px; margin-top:10px;
+    touch-action:none;
+  }
+  .cell {
+    position:absolute; width:110px; height:110px; border-radius:10px;
+    background:rgba(238,228,218,0.35);
+  }
+  .tile {
+    position:absolute; width:110px; height:110px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:bold; text-align:center;
+    transition:left 120ms ease, top 120ms ease;
+    z-index:2;
+  }
+  .tile.appear { animation:appear 160ms ease; }
+  .tile.merged { animation:pop 240ms ease; z-index:3; }
+  @keyframes appear {
+    0% { transform:scale(0); opacity:0; }
+    100% { transform:scale(1); opacity:1; }
+  }
+  @keyframes pop {
+    0%   { transform:scale(1);    filter:brightness(1); }
+    40%  { transform:scale(1.28); filter:brightness(1.7); }
+    100% { transform:scale(1);    filter:brightness(1); }
+  }
+
+  .overlay {
+    position:absolute; inset:0; border-radius:12px;
+    background:rgba(238,228,218,0.75);
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    z-index:10; gap:14px;
+  }
+  .overlay.show { display:flex; }
+  .overlay .msg { font-size:34px; font-weight:bold; color:#776e65; }
+  .overlay .sub  { font-size:16px; color:#8f7a66; }
+  .overlay .time {
+    font-size:28px; font-weight:bold; color:#edc22e;
+    background:rgba(237,194,46,0.18); border:2px solid #edc22e;
+    padding:8px 26px; border-radius:28px;
+    animation:timePulse 0.9s ease-in-out infinite;
+  }
+  @keyframes timePulse {
+    0%,100% { transform:scale(1); }
+    50%     { transform:scale(1.1); }
+  }
+  .overlay .again {
+    background:#8f7a66; color:#f9f6f2; border:none; border-radius:6px;
+    padding:10px 22px; font-size:16px; font-weight:bold; cursor:pointer;
+  }
+  .overlay .again:hover { background:#9f8b77; }
+
+  .toast {
+    position:absolute; top:88px; left:50%; transform:translateX(-50%);
+    background:rgba(101,84,64,0.92); color:#ffe0a3;
+    padding:8px 18px; border-radius:20px; font-size:15px; font-weight:bold;
+    opacity:0; pointer-events:none; z-index:20; white-space:nowrap;
+    transition:opacity 200ms ease;
+  }
+  .toast.show { opacity:1; }
+
+  .close-btn {
+    position:absolute; top:8px; right:14px; width:26px; height:26px;
+    border:none; border-radius:50%; background:#d8cec4; color:#776e65;
+    font-size:15px; line-height:1; cursor:pointer; z-index:30;
+  }
+  .close-btn:hover { background:#c4b8ac; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="title">
+      <h1>夯048 <span style="font-size:13px;color:#a0948a;font-weight:normal;">Hang2048</span></h1>
+      <div class="chain">拉完了 → NPC → 人上人 → 顶级 → 夯</div>
+    </div>
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-label">用时</div>
+        <div class="stat-value" id="timer">00:00</div>
+      </div>
+      <div class="score-box">
+        <div class="score-label">得分</div>
+        <div class="score-value" id="score">0</div>
+      </div>
+    </div>
+    <button class="reset-btn" id="resetBtn">重置</button>
+  </div>
+
+  <div class="board" id="board">
+    <div id="grid"></div>
+    <div id="tiles"></div>
+    <div class="toast" id="toast"></div>
+    <div class="overlay" id="overlay">
+      <div class="msg" id="overMsg"></div>
+      <div class="sub" id="overSub"></div>
+      <div class="time" id="overTime">⏱ 用时 00:00</div>
+      <button class="again" id="againBtn">再来一局</button>
+    </div>
+  </div>
+
+  <button class="close-btn" id="closeBtn" title="关闭">×</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- 配置 ----------
+  var SIZE = 4;          // 4x4 网格
+  var CELL = 110;        // 格子尺寸 px
+  var GAP = 12;          // 间距 px
+  var MAX_LEVEL = 4;     // 最高等级「夯」
+
+  // 合成链：等级 -> 名称
+  var NAMES = ['拉完了', 'NPC', '人上人', '顶级', '夯'];
+
+  // 每个等级的颜色
+  var STYLES = [
+    { bg: '#eee4da', color: '#776e65', fs: '28px' }, // 拉完了
+    { bg: '#ede0c8', color: '#776e65', fs: '32px' }, // NPC
+    { bg: '#f2b179', color: '#f9f6f2', fs: '28px' }, // 人上人
+    { bg: '#f59563', color: '#f9f6f2', fs: '30px' }, // 顶级
+    { bg: '#edc22e', color: '#f9f6f2', fs: '36px' }  // 夯
+  ];
+
+  // ---------- 状态 ----------
+  var board = [];        // board[r][c] = {level, id, row, col} | null
+  var tilesEl, scoreEl, overlayEl, toastEl, timerEl;
+  var score = 0;
+  var tileId = 0;
+  var gameOver = false;
+  var toastTimer = null;
+  var startTime = 0;         // 本局开始时间戳
+  var timerInterval = null;  // 计时器 interval id
+
+  // ---------- 计时器 ----------
+  function fmtTime(ms) {
+    var s = Math.floor(ms / 1000);
+    var m = Math.floor(s / 60);
+    var sec = s % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+  function armTimer() {
+    // 开局/重置：只把计时器置于「未启动」的待命状态（显示 00:00，但不记 startTime、不 tick）
+    stopTimer();
+    startTime = 0;
+    timerEl.textContent = '00:00';
+  }
+  function startTimer() {
+    // 只有当计时器尚未运行时才启动（避免重复 startTime 刷新）
+    if (timerInterval) return;
+    startTime = Date.now();
+    timerInterval = setInterval(function () {
+      timerEl.textContent = fmtTime(Date.now() - startTime);
+    }, 200);
+  }
+  function stopTimer() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  }
+  function getElapsed() { return startTime ? Date.now() - startTime : 0; }
+
+  function pos(c) { return GAP + c * (CELL + GAP); }
+
+  // ---------- 构建网格背景 ----------
+  function buildGrid() {
+    var grid = document.getElementById('grid');
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        var cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.style.left = pos(c) + 'px';
+        cell.style.top = pos(r) + 'px';
+        grid.appendChild(cell);
+      }
+    }
+  }
+
+  // ---------- 渲染 ----------
+  function tileElement(t) {
+    var el = document.createElement('div');
+    el.className = 'tile';
+    el.dataset.id = t.id;
+    el.style.width = CELL + 'px';
+    el.style.height = CELL + 'px';
+    el.style.left = pos(t.col) + 'px';
+    el.style.top = pos(t.row) + 'px';
+    applyStyle(el, t.level);
+    return el;
+  }
+
+  function applyStyle(el, level) {
+    var s = STYLES[level];
+    el.style.background = s.bg;
+    el.style.color = s.color;
+    el.style.fontSize = s.fs;
+    el.textContent = NAMES[level];
+  }
+
+  function render() {
+    tilesEl.innerHTML = '';
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        var t = board[r][c];
+        if (t) tilesEl.appendChild(tileElement(t));
+      }
+    }
+  }
+
+  // 渲染并驱动移动动画（旧位置 -> 新位置）
+  function renderWithMove(oldBoard) {
+    tilesEl.innerHTML = '';
+    // 先画所有旧位置的 tile（带过渡效果）
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        var t = board[r][c];
+        if (!t) continue;
+        var el = tileElement(t);
+        // 先放到旧位置，再强制回流后放到新位置，触发过渡
+        el.style.left = pos(oldBoard[r][c] ? oldBoard[r][c].col : t.col) + 'px';
+        el.style.top  = pos(oldBoard[r][c] ? oldBoard[r][c].row : t.row) + 'px';
+        tilesEl.appendChild(el);
+      }
+    }
+    void tilesEl.offsetHeight; // 强制回流
+    for (var i = 0; i < tilesEl.children.length; i++) {
+      var child = tilesEl.children[i];
+      var t = findTileById(parseInt(child.dataset.id, 10));
+      if (!t) continue;
+      child.style.left = pos(t.col) + 'px';
+      child.style.top = pos(t.row) + 'px';
+    }
+  }
+
+  function findTileById(id) {
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (board[r][c] && board[r][c].id === id) return board[r][c];
+      }
+    }
+    return null;
+  }
+
+  // ---------- 移动逻辑 ----------
+  // dir: 'up' | 'down' | 'left' | 'right'
+  function move(dir) {
+    if (gameOver) return;
+
+    // 保存旧状态用于动画与判断是否有变化
+    var oldBoard = [];
+    for (var r = 0; r < SIZE; r++) {
+      oldBoard.push([]);
+      for (var c = 0; c < SIZE; c++) {
+        oldBoard[r].push(board[r][c] ? { level: board[r][c].level, id: board[r][c].id, row: board[r][c].row, col: board[r][c].col } : null);
+      }
+    }
+    var oldScore = score;
+    var mergedNow = []; // 本次合并产生的 id 列表（用于动画）
+    var won = false;    // 是否合成了「夯」（胜利）
+
+    // 收集每一条线上的格子
+    var lines = [];
+    for (var i = 0; i < SIZE; i++) {
+      var line = [];
+      for (var j = 0; j < SIZE; j++) {
+        var t = (dir === 'up')   ? board[j][i] :
+                (dir === 'down') ? board[SIZE - 1 - j][i] :
+                (dir === 'left') ? board[i][j] :
+                                   board[i][SIZE - 1 - j];
+        if (t) line.push(t);
+      }
+      lines.push(line);
+    }
+
+    var moved = false;
+
+    for (var li = 0; li < SIZE; li++) {
+      var line = lines[li];
+      if (line.length === 0) continue;
+      // 合并：相邻同等级合并（每个格子只参与一次）
+      var merged = [];
+      for (var k = 0; k < line.length; k++) {
+        if (k + 1 < line.length && line[k].level === line[k + 1].level && line[k].level < MAX_LEVEL) {
+          var a = line[k], b = line[k + 1];
+          var newLevel = a.level + 1;
+          score += 10;                       // 每次合并 +10
+          if (newLevel === MAX_LEVEL) {      // 合成「夯」额外 +100 并胜利
+            score += 100;
+            won = true;
+            showToast('🏆 合成【夯】！+100');
+          }
+          b.level = newLevel;                // b 保留，a 消失
+          merged.push(b);
+          mergedNow.push(b.id);
+          k++;                               // 跳过 b，避免重复合并
+          moved = true;
+        } else {
+          merged.push(line[k]);
+        }
+      }
+      // 写回（直接赋值 board 对应位置，并检测位置是否变化）
+      for (var m = 0; m < SIZE; m++) {
+        var r2 = (dir === 'up')   ? m :
+                 (dir === 'down') ? SIZE - 1 - m : li;
+        var c2 = (dir === 'left') ? m :
+                 (dir === 'right')? SIZE - 1 - m : li;
+        var nt = merged[m];
+        if (nt) {
+          if (nt.row !== r2 || nt.col !== c2) moved = true;
+          nt.row = r2;
+          nt.col = c2;
+        }
+        board[r2][c2] = nt;
+      }
+      if (merged.length !== line.length) moved = true;
+    }
+
+    if (!moved) return; // 无任何移动/合并（无效操作，不计时）
+
+    // 第一次「有效操作」才真正开始计时
+    startTimer();
+
+    renderWithMove(oldBoard);
+
+    // 合并动画：闪烁/缩放
+    setTimeout(function () {
+      var els = tilesEl.children;
+      for (var i = 0; i < els.length; i++) {
+        var id = parseInt(els[i].dataset.id, 10);
+        if (mergedNow.indexOf(id) !== -1) {
+          els[i].classList.add('merged');
+          applyStyle(els[i], findTileById(id).level);
+        }
+      }
+    }, 130);
+
+    // 生成新块 / 判定胜负
+    setTimeout(function () {
+      if (won) {
+        // 胜利：合成出最大等级「夯」
+        gameOver = true;
+        updateScore();
+        showOverlay('🏆 合成【夯】！', '恭喜通关，达成最高等级', '再来一局');
+        return; // 胜利后不再生成新块
+      }
+      spawnTile();
+      updateScore();
+      if (isBoardFull()) {
+        // 失败：棋盘已填满（无论下一步是否可动）
+        gameOver = true;
+        showOverlay('游戏失败', '棋盘已填满', '再来一局');
+      }
+    }, 260);
+  }
+
+  function spawnTile() {
+    var empty = [];
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (!board[r][c]) empty.push([r, c]);
+      }
+    }
+    if (empty.length === 0) return;
+    var pick = empty[Math.floor(Math.random() * empty.length)];
+    var level = Math.random() < 0.9 ? 0 : 1; // 90% 拉完了, 10% NPC
+    var t = { id: ++tileId, level: level, row: pick[0], col: pick[1] };
+    board[pick[0]][pick[1]] = t;
+    var el = tileElement(t);
+    el.classList.add('appear');
+    tilesEl.appendChild(el);
+  }
+
+  // 棋盘是否已填满（失败条件）
+  function isBoardFull() {
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (!board[r][c]) return false;
+      }
+    }
+    return true;
+  }
+
+  // ---------- UI ----------
+  function updateScore() {
+    scoreEl.textContent = score;
+  }
+
+  function showToast(text) {
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      toastEl.classList.remove('show');
+    }, 1400);
+  }
+
+  function showOverlay(msg, sub, btn) {
+    stopTimer(); // 结束时停止计时
+    document.getElementById('overMsg').textContent = msg;
+    document.getElementById('overSub').textContent = sub;
+    document.getElementById('againBtn').textContent = btn;
+    document.getElementById('overTime').textContent = '⏱ 用时 ' + fmtTime(getElapsed());
+    overlayEl.classList.add('show');
+  }
+
+  function hideOverlay() { overlayEl.classList.remove('show'); }
+
+  // ---------- 初始 / 重置 ----------
+  function reset() {
+    board = [];
+    for (var r = 0; r < SIZE; r++) {
+      board.push([]);
+      for (var c = 0; c < SIZE; c++) board[r].push(null);
+    }
+    score = 0;
+    gameOver = false;
+    hideOverlay();
+    updateScore();
+    render();
+    armTimer(); // 开局/重置时计时器进入待命状态，等待第一次「有效操作」才真正计时
+    spawnTile();
+    spawnTile();
+  }
+
+  // ---------- 输入：键盘 ----------
+  var keyMap = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right'
+  };
+  document.addEventListener('keydown', function (e) {
+    var dir = keyMap[e.key];
+    if (dir) { e.preventDefault(); move(dir); }
+  });
+
+  // ---------- 输入：鼠标拖拽滑动 ----------
+  var dragStart = null;
+  var boardEl = document.getElementById('board');
+  boardEl.addEventListener('pointerdown', function (e) {
+    dragStart = { x: e.clientX, y: e.clientY };
+  });
+  boardEl.addEventListener('pointermove', function (e) {
+    if (!dragStart) return;
+    var dx = e.clientX - dragStart.x;
+    var dy = e.clientY - dragStart.y;
+    if (Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      move(dx > 0 ? 'right' : 'left');
+    } else {
+      move(dy > 0 ? 'down' : 'up');
+    }
+    dragStart = { x: e.clientX, y: e.clientY }; // 支持连续拖拽
+  });
+  boardEl.addEventListener('pointerup', function () { dragStart = null; });
+  boardEl.addEventListener('pointerleave', function () { dragStart = null; });
+  document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  // ---------- 启动 ----------
+  function init() {
+    tilesEl = document.getElementById('tiles');
+    scoreEl = document.getElementById('score');
+    overlayEl = document.getElementById('overlay');
+    toastEl = document.getElementById('toast');
+    timerEl = document.getElementById('timer');
+
+    buildGrid();
+
+    document.getElementById('resetBtn').addEventListener('click', reset);
+    document.getElementById('againBtn').addEventListener('click', reset);
+    document.getElementById('closeBtn').addEventListener('click', function () {
+      window.close();
+    });
+
+    reset();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+node_modules/
+output/
+release/win-unpacked/
+*.log
+.DS_Store
