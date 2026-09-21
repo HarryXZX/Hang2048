@@ -2,6 +2,37 @@
 
 > 拉完了 → NPC → 人上人 → 顶级 → 夯 合成链 2048 桌面游戏
 
+[![Release](https://img.shields.io/github/v/release/HarryXZX/Hang2048?color=edc22e&label=release)](https://github.com/HarryXZX/Hang2048/releases/latest)
+[![License](https://img.shields.io/github/license/HarryXZX/Hang2048?color=8f7a66)](LICENSE)
+
+---
+
+## 🎉 v2.0.0 重磅更新：架构重构
+
+> **一次彻底的重构，代码质量追上玩法体验。**
+
+v1.x 把 HTML + CSS + 游戏逻辑全部塞在一个 526 行的 `index.html` 里，能跑，但没法维护。
+v2.0.0 把它拆成了标准的 Electron 三层架构，并补齐了测试、打包、图标等工程化设施：
+
+| | v1.2.0 | **v2.0.0** |
+| --- | --- | --- |
+| 代码组织 | 单文件 `index.html` 内联全部 | `main.js` + `preload.js` + `renderer/{index.html,styles.css,renderer.js}` |
+| 进程通信 | 无（直接 `window.close()`） | `contextBridge` 安全桥接，`contextIsolation` + `sandbox` + CSP |
+| 窗口尺寸 | 硬编码，150% DPI 下偏移 0.667px | 渲染进程实测 + DPI 取整误差反向补偿，像素级精确 |
+| 窗口拖动 | ❌ 无边框且**完全拖不动** | ✅ 标题栏可拖动 |
+| 自动化测试 | 无 | **45 项断言** + 自动截图（`npm run smoke`） |
+| 图标 | 依赖系统转换 | `tools/make-icon.cjs` 生成 7 种尺寸 ICO |
+| 打包 | 手动 `npm run dist` | `tools/build.ps1` 一键镜像打包，NSIS + portable 双产物 |
+
+**玩法、手感、画面与 v1.2.0 完全一致**——这是一次纯粹的架构升级，不是改版。
+
+同时顺手修掉了 5 个真实缺陷（窗口不可拖、CSP 拦截内联样式、DPI 半像素偏移、
+渲染空值崩溃、未使用的 require）。详见 [DEV_DOC.md](DEV_DOC.md#11-v200-修掉的真实缺陷)。
+
+📦 **[前往 Releases 下载 v2.0.0](https://github.com/HarryXZX/Hang2048/releases/latest)** · 免安装单文件，双击即玩
+
+---
+
 ## 简介
 
 **Hang2048** 是一款基于 [Electron](https://www.electronjs.org/) 的 4×4 网格 2048 变体桌面合成游戏。
@@ -148,6 +179,17 @@ electron-builder 会当成失败并重试 4 次后整体报错。脚本优先从
 - 无边框窗口在非整数缩放（例如 150% DPI）下 `setContentSize(N)` 可能得到 N+1，
   会让页面出现 0.5px 半像素偏移。`main.js` 的 `applyContentSize()` 会测出偏差后反向补偿一次。
 
+## 下载
+
+前往 **[Releases](https://github.com/HarryXZX/Hang2048/releases/latest)** 下载，两种可选：
+
+| 产物 | 说明 |
+| --- | --- |
+| `Hang2048-Portable-2.0.0.exe` | **免安装单文件**，双击即玩，推荐 |
+| `Hang2048-Setup-2.0.0.exe` | NSIS 安装向导，可选安装目录、创建桌面/开始菜单快捷方式 |
+
+> 未配置代码签名证书，Windows SmartScreen 可能提示"未知发布者"，选择"仍要运行"即可。
+
 ## 打包产物
 
 `npm run dist:cn` 之后：
@@ -166,9 +208,9 @@ exe 内嵌 `build/icon.ico`，版本信息为 `ProductName=Hang2048`、`FileVers
 
 | 版本 | 说明 | 状态 |
 | --- | --- | --- |
-| 1.0.0 | 初版：合成链玩法、双操作、动画、计分、胜负规则、计时器（开局即计时）、图标打包 | 稳定版（`release/`） |
-| 1.2.0 | 计时器改为首次「有效操作」才开始计时 | 稳定版（`release/`） |
-| **2.0.0** | **架构重构**：单文件内联 → `main.js` / `preload.js` / `renderer/` 三层；新增 CSP、图标生成、打包脚本、45 项冒烟测试。玩法与外观与 1.2.0 完全一致 | 最新版 |
+| 1.0.0 | 初版：合成链玩法、双操作、动画、计分、胜负规则、计时器（开局即计时）、图标打包 | 历史版本 |
+| 1.2.0 | 计时器改为首次「有效操作」才开始计时 | 历史版本 |
+| **2.0.0** | **🎉 重磅更新 · 架构重构**：单文件内联 → `main.js` / `preload.js` / `renderer/` 三层；新增 CSP、图标生成、打包脚本、45 项冒烟测试；修掉 5 个真实缺陷。**玩法与外观与 1.2.0 完全一致** | **最新版** |
 
 > v1.2.0 源码完整备份在 `E:\HYTools\Project\Hang2048.backup-v1.2.0\`，
 > git 上打有 `legacy-v1.2.0` 标签。
