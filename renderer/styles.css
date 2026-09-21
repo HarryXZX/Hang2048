@@ -1,0 +1,309 @@
+/* ==========================================================================
+   夯048 · Hang2048 —— 界面样式
+   与 v1.2.0 视觉完全一致，仅从 index.html 的内联 <style> 抽出
+   ========================================================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #faf8ef;
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+}
+
+/* ---------- 无边框窗口：拖动区域 ---------- */
+#app {
+  width: 550px;
+  height: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 25px 0 25px;
+  position: relative;
+}
+
+/* ---------- 顶部 ---------- */
+.header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  -webkit-app-region: drag;
+}
+
+.title h1 {
+  font-size: 26px;
+  color: #776e65;
+}
+
+/* 标题里的英文副名（原来写在 HTML 的 style 属性上，会被 CSP 拦截） */
+.title .title-en {
+  font-size: 13px;
+  color: #a0948a;
+  font-weight: normal;
+}
+
+.title .chain {
+  font-size: 12px;
+  color: #a0948a;
+  margin-top: 2px;
+  letter-spacing: 1px;
+}
+
+.score-box {
+  background: #bbada0;
+  color: #f9f6f2;
+  border-radius: 6px;
+  padding: 4px 14px;
+  text-align: center;
+  min-width: 88px;
+}
+
+.score-label {
+  font-size: 11px;
+  color: #eee4da;
+  letter-spacing: 1px;
+}
+
+.score-value {
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 1.1;
+}
+
+.stats {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.stat-box {
+  background: #bbada0;
+  color: #f9f6f2;
+  border-radius: 6px;
+  padding: 4px 10px;
+  text-align: center;
+  min-width: 62px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #eee4da;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.reset-btn {
+  background: #8f7a66;
+  color: #f9f6f2;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.reset-btn:hover {
+  background: #9f8b77;
+}
+
+.reset-btn:active {
+  transform: scale(0.95);
+}
+
+/* ---------- 棋盘 ---------- */
+.board {
+  position: relative;
+  width: 500px;
+  height: 500px;
+  background: #bbada0;
+  border-radius: 12px;
+  margin-top: 10px;
+  touch-action: none;
+}
+
+.cell {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  border-radius: 10px;
+  background: rgba(238, 228, 218, 0.35);
+}
+
+.tile {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  text-align: center;
+  transition: left 120ms ease, top 120ms ease;
+  z-index: 2;
+}
+
+.tile.appear {
+  animation: appear 160ms ease;
+}
+
+.tile.merged {
+  animation: pop 240ms ease;
+  z-index: 3;
+}
+
+@keyframes appear {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  40% {
+    transform: scale(1.28);
+    filter: brightness(1.7);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+/* ---------- 结束面板 ---------- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: rgba(238, 228, 218, 0.75);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  gap: 14px;
+}
+
+.overlay.show {
+  display: flex;
+}
+
+.overlay .msg {
+  font-size: 34px;
+  font-weight: bold;
+  color: #776e65;
+}
+
+.overlay .sub {
+  font-size: 16px;
+  color: #8f7a66;
+}
+
+.overlay .time {
+  font-size: 28px;
+  font-weight: bold;
+  color: #edc22e;
+  background: rgba(237, 194, 46, 0.18);
+  border: 2px solid #edc22e;
+  padding: 8px 26px;
+  border-radius: 28px;
+  animation: timePulse 0.9s ease-in-out infinite;
+}
+
+@keyframes timePulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.overlay .again {
+  background: #8f7a66;
+  color: #f9f6f2;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 22px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.overlay .again:hover {
+  background: #9f8b77;
+}
+
+/* ---------- 提示气泡 ---------- */
+.toast {
+  position: absolute;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(101, 84, 64, 0.92);
+  color: #ffe0a3;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: bold;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+  transition: opacity 200ms ease;
+}
+
+.toast.show {
+  opacity: 1;
+}
+
+/* ---------- 自绘关闭按钮（无系统边框） ---------- */
+.close-btn {
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: #d8cec4;
+  color: #776e65;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 30;
+  -webkit-app-region: no-drag;
+}
+
+.close-btn:hover {
+  background: #c4b8ac;
+}

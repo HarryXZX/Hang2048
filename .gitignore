@@ -1,4 +1,7 @@
 node_modules/
+dist/
+.cache/
+captures/
 output/
 release/win-unpacked/
 *.log
